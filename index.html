@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Wibuku Pribadi</title>
+  <!-- Plyr CSS -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0b0b0b;
+      color: #fff;
+      min-height: 100vh;
+      padding-bottom: 30px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Header ala Wibuku */
+    .header {
+      background: #1a1a1a;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2a2a2a;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header .logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ff4757;
+      letter-spacing: -0.5px;
+    }
+    .search-box {
+      display: flex;
+      gap: 6px;
+      padding: 12px 16px;
+      background: #0f0f0f;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 10px 14px;
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    .search-box input:focus {
+      border-color: #ff4757;
+    }
+    .search-box button {
+      background: #ff4757;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    /* Grid anime */
+    #results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+      gap: 10px;
+      padding: 16px;
+    }
+    .anime-card {
+      background: #1a1a1a;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .anime-card:active { transform: scale(0.96); }
+    .anime-card img {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      background: #222;
+    }
+    .anime-card .card-info {
+      padding: 8px;
+    }
+    .anime-card .card-info p {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .anime-card .card-info small {
+      color: #888;
+      font-size: 11px;
+    }
+    /* Modal */
+    #modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.96);
+      z-index: 100;
+      overflow-y: auto;
+      animation: fadeIn 0.2s;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    #modal-content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 16px;
+      position: relative;
+    }
+    #close-btn {
+      position: sticky;
+      top: 12px;
+      float: right;
+      font-size: 34px;
+      color: #ff4757;
+      cursor: pointer;
+      z-index: 10;
+      background: rgba(0,0,0,0.7);
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .modal-cover {
+      width: 50%;
+      display: block;
+      margin: 20px auto;
+      border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+    .modal-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 10px 0;
+      color: #ff4757;
+      text-align: center;
+    }
+    .modal-meta {
+      color: #aaa;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .modal-synopsis {
+      color: #ccc;
+      font-size: 14px;
+      line-height: 1.6;
+      background: #1a1a1a;
+      padding: 14px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+    /* Episode grid */
+    .episode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+      gap: 6px;
+      margin: 15px 0;
+    }
+    .ep-btn {
+      padding: 8px 4px;
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 5px;
+      color: #ddd;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ep-btn.active {
+      background: #ff4757;
+      border-color: #ff4757;
+      color: #fff;
+      font-weight: bold;
+    }
+    /* Player */
+    #player-container {
+      margin: 15px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+    }
+    .plyr {
+      --plyr-color-main: #ff4757;
+      border-radius: 8px;
+    }
+    /* Download area */
+    .download-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .btn-primary {
+      background: #ff4757;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-outline {
+      background: transparent;
+      color: #ff4757;
+      border: 1px solid #ff4757;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2ed573;
+      color: #000;
+      padding: 10px 22px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 200;
+      animation: slideUp 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    @keyframes slideUp { from { bottom: 0; opacity: 0; } to { bottom: 20px; opacity: 1; } }
+    .status-msg { text-align: center; padding: 30px; color: #888; }
+    .footer-note { text-align: center; color: #444; font-size: 11px; padding: 20px; }
+    hr { border: 0.5px solid #2a2a2a; margin: 20px 0; }
+    h3.section-title { font-size: 16px; margin: 10px 0 6px; color: #ff4757; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="logo">Wibuku</span>
+    <span style="color:#888;font-size:12px;">Pribadi v2</span>
+  </div>
+
+  <!-- Search -->
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Cari anime..." autocomplete="off">
+    <button onclick="cari()">Cari</button>
+  </div>
+
+  <!-- Results Grid -->
+  <div id="results"></div>
+  <div id="status" class="status-msg"></div>
+
+  <!-- Modal -->
+  <div id="modal">
+    <div id="modal-content">
+      <span id="close-btn" onclick="tutupModal()">&times;</span>
+      <div id="modal-inner"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-note">Wibuku Pribadi v2 • Streaming + Download</div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <script>
+    const RESULTS = document.getElementById('results');
+    const STATUS = document.getElementById('status');
+    const MODAL = document.getElementById('modal');
+    const MODAL_INNER = document.getElementById('modal-inner');
+
+    // ---------- SEARCH ----------
+    async function cari() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (!q) return;
+      RESULTS.innerHTML = '';
+      STATUS.innerHTML = '<p>🔍 Mencari "<b>' + q + '</b>"...</p>';
+
+      try {
+        const res = await fetch('https://api.consumet.org/anime/gogoanime/' + encodeURIComponent(q));
+        const data = await res.json();
+
+        STATUS.innerHTML = '';
+        if (!data.results || data.results.length === 0) {
+          STATUS.innerHTML = '<p>😕 Nggak ketemu, bro. Coba keyword lain.</p>';
+          return;
+        }
+
+        data.results.forEach(anime => {
+          const card = document.createElement('div');
+          card.className = 'anime-card';
+          card.innerHTML = `
+            <img src="${anime.image}" alt="${anime.title}" loading="lazy">
+            <div class="card-info">
+              <p>${anime.title}</p>
+              <small>${anime.releaseDate || 'N/A'}</small>
+            </div>
+          `;
+          card.onclick = () => bukaDetail(anime.id);
+          RESULTS.appendChild(card);
+        });
+      } catch (err) {
+        STATUS.innerHTML = '<p>❌ Server API sibuk. Coba lagi 2 menit lagi.</p>';
+        console.error(err);
+      }
+    }
+
+    // ---------- MODAL DETAIL ----------
+    async function bukaDetail(id) {
+      MODAL.style.display = 'block';
+      MODAL_INNER.innerHTML = '<p style="text-align:center;padding:40px;">Memuat detail...</p>';
+      document.body.style.overflow = 'hidden';
+
+      try {
+        const res = await fetch('https://api.consumet.org/anime/gogoanime/info/' + id);
+        const anime = await res.json();
+
+        let epsHtml = '';
+        if (anime.episodes && anime.episodes.length) {
+          epsHtml = '<h3 class="section-title">📺 Daftar Episode</h3><div class="episode-grid">';
+          anime.episodes.forEach(ep => {
+            epsHtml += `<button class="ep-btn" onclick="putarEpisode('${ep.id.replace(/'/g, "\\'")}', this)">${ep.number}</button>`;
+          });
+          epsHtml += '</div>';
+        }
+
+        MODAL_INNER.innerHTML = `
+          <img src="${anime.image}" alt="${anime.title}" class="modal-cover">
+          <div class="modal-title">${anime.title}</div>
+          <div class="modal-meta">
+            ⭐ ${anime.rating || 'N/A'} • ${anime.status || 'N/A'} • ${anime.totalEpisodes || 'N/A'} eps
+          </div>
+          <div class="modal-synopsis">${anime.description || 'Tidak ada sinopsis.'}</div>
+          ${epsHtml}
+          <div id="player-container"></div>
+          <div id="download-area" class="download-area"></div>
+          <div id="stream-hint" style="color:#888;font-size:12px;margin-top:8px;"></div>
+        `;
+      } catch (err) {
+        MODAL_INNER.innerHTML = '<p style="text-align:center;color:#ff4757;">Gagal memuat detail.</p>';
+        console.error(err);
+      }
+    }
+
+    // ---------- PLAYER + DOWNLOAD ----------
+    async function putarEpisode(episodeId, btnEl) {
+      // Update tombol aktif
+      document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+
+      const playerDiv = document.getElementById('player-container');
+      const downloadDiv = document.getElementById('download-area');
+      const hintDiv = document.getElementById('stream-hint');
+
+      playerDiv.innerHTML = '<p style="text-align:center;padding:20px;">🎬 Memuat player...</p>';
+      downloadDiv.innerHTML = '';
+      hintDiv.innerHTML = '';
+
+      try {
+        const res = await fetch('https://api.consumet.org/anime/gogoanime/watch/' + episodeId);
+        const data = await res.json();
+
+        // Ambil source terbaik
+        const sources = data.sources || [];
+        const bestSource = sources.find(s => s.quality === '1080p') || sources.find(s => s.quality === '720p') || sources[0];
+        if (!bestSource) throw new Error('No source');
+
+        const streamUrl = bestSource.url;
+        const isM3u8 = streamUrl.includes('.m3u8');
+
+        // Render player
+        playerDiv.innerHTML = `
+          <video id="plyr-player" controls crossorigin="anonymous" playsinline poster="${data.image || ''}" style="width:100%;border-radius:8px;background:#000;"></video>
+        `;
+
+        const video = document.getElementById('plyr-player');
+        
+        // Init HLS jika m3u8
+        if (isM3u8 && Hls.isSupported()) {
+          const hls = new Hls({ enableWorker: false });
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(e => console.log('Autoplay blocked'));
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.play();
+        } else {
+          video.src = streamUrl;
+          video.load();
+        }
+
+        // Inisialisasi Plyr (opsional, biar UI bagus)
+        if (typeof Plyr !== 'undefined') {
+          new Plyr(video, {
+            controls: ['play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+            autoplay: true,
+            muted: true,
+            clickToPlay: true
+          });
+        }
+
+        // Tombol Download
+        downloadDiv.innerHTML = `
+          <button class="btn-primary" onclick="salinLink('${streamUrl.replace(/'/g, "\\'")}')">
+            📋 Copy Link Streaming
+          </button>
+          <a class="btn-outline" href="intent://${streamUrl.replace(/^https?:\/\//, '')}#Intent;scheme=https;end" target="_blank">
+            📥 Buka di Browser
+          </a>
+        `;
+
+        hintDiv.innerHTML = `
+          💡 <b>Cara download:</b> Copy link di atas → buka <b>ADM</b> / <b>1DM</b> → Paste → Download otomatis terkonversi MP4.
+        `;
+
+      } catch (err) {
+        playerDiv.innerHTML = '<p style="text-align:center;color:#ff4757;">Gagal memutar episode ini. Coba yang lain.</p>';
+        console.error(err);
+      }
+    }
+
+    // ---------- SALIN LINK & TOAST ----------
+    function salinLink(url) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          tampilToast('✅ Link streaming disalin!');
+        }).catch(() => {
+          fallbackCopy(url);
+        });
+      } else {
+        fallbackCopy(url);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        tampilToast('✅ Link streaming disalin!');
+      } catch (e) {
+        tampilToast('⚠️ Gagal copy. Salin manual dari player.');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function tampilToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 2500);
+    }
+
+    // ---------- TUTUP MODAL ----------
+    function tutupModal() {
+      MODAL.style.display = 'none';
+      document.body.style.overflow = '';
+      const playerDiv = document.getElementById('player-container');
+      if (playerDiv) playerDiv.innerHTML = ''; // hentikan video
+    }
+
+    // ---------- CLOSE MODAL WITH BACK BUTTON (Android) ----------
+    window.addEventListener('popstate', (e) => {
+      if (MODAL.style.display === 'block') {
+        tutupModal();
+        e.preventDefault();
+      }
+    });
+
+    // Initial
+    STATUS.innerHTML = '<p>🔎 Cari anime favoritmu di atas 👆</p>';
+  </script>
+</body>
+</html>
